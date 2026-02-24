@@ -1,0 +1,11 @@
+{
+  "name": "inguumel-drive-workspace",
+  "private": true,
+  "description": "Root workspace; app lives in inguumel_drive/",
+  "scripts": {
+    "postinstall": "cd inguumel_drive && npm install",
+    "start": "cd inguumel_drive && npm start",
+    "android": "cd inguumel_drive && npm run android",
+    "ios": "cd inguumel_drive && npm run ios"
+  }
+}
