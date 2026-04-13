@@ -56,19 +56,25 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
       activeOpacity={0.8}
     >
       <View style={styles.topRow}>
-        <ThemedText type="defaultSemiBold" style={styles.orderNumber}>
-          {orderNumber}
-        </ThemedText>
+        <View style={styles.orderBlock}>
+          <ThemedText type="defaultSemiBold" style={styles.orderNumber}>
+            {orderNumber}
+          </ThemedText>
+          <ThemedText style={styles.orderMeta}>Updated {formatDate(order.date_order)}</ThemedText>
+        </View>
         <View style={[styles.badge, { backgroundColor: badgeColorVal }]}>
           <ThemedText style={styles.badgeText}>{statusLabel}</ThemedText>
         </View>
       </View>
-      <ThemedText style={styles.date}>🕒 {formatDate(order.date_order)}</ThemedText>
       <View style={styles.bottomRow}>
-        <View>
+        <View style={styles.metricCard}>
+          <ThemedText style={styles.metricLabel}>Amount</ThemedText>
           <ThemedText type="defaultSemiBold" style={styles.amount}>
-            💰 {formatMoney(amount)}
+            {formatMoney(amount)}
           </ThemedText>
+        </View>
+        <View style={styles.metricCard}>
+          <ThemedText style={styles.metricLabel}>Payment</ThemedText>
           <ThemedText style={styles.paymentSub}>{paymentLabelText}</ThemedText>
         </View>
       </View>
@@ -82,24 +88,35 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     marginHorizontal: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 18,
+    elevation: 3,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 14,
+    gap: 12,
+  },
+  orderBlock: {
+    flex: 1,
   },
   orderNumber: {
     fontSize: 18,
+  },
+  orderMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#64748b',
   },
   badge: {
     paddingHorizontal: 10,
@@ -111,18 +128,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  date: {
-    fontSize: 14,
-    opacity: 0.85,
-    marginBottom: 12,
+  bottomRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
   },
-  bottomRow: {},
+  metricCard: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
   amount: {
-    fontSize: 20,
+    fontSize: 18,
   },
   paymentSub: {
-    fontSize: 12,
-    opacity: 0.8,
-    marginTop: 2,
+    fontSize: 13,
+    color: '#0f172a',
   },
 });

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "inguumel_drive",
+    "name": "Inguumel Drive",
     "slug": "inguumel_drive",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,9 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.inguumel.drive",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.inguumel.drive",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -40,9 +47,22 @@
         }
       ]
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "apiBaseUrl": "http://127.0.0.1:8069",
+      "env": "development",
+      "appContext": "driver",
+      "privacyPolicyUrl": "http://127.0.0.1:8069/legal/privacy-policy",
+      "termsUrl": "http://127.0.0.1:8069/legal/terms"
     }
   }
 }

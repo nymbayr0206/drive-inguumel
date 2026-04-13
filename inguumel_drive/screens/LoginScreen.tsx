@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,7 @@ import {
 import { normalizeError } from '@/api/client';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { legal } from '@/lib/legal';
 import { useAuthStore } from '@/store/authStore';
 
 const ACCESS_DENIED_MESSAGE =
@@ -122,6 +124,15 @@ export default function LoginScreen() {
     handleLogin();
   }, [handleLogin]);
 
+  const handleOpenLegal = useCallback(async (url: string) => {
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) {
+      setError('Legal page could not be opened.');
+      return;
+    }
+    await Linking.openURL(url);
+  }, []);
+
   const isSubmitDisabled = loading;
 
   return (
@@ -137,61 +148,90 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <ThemedText type="title" style={styles.title}>
-              Inguumel Drive
-            </ThemedText>
-            <ThemedText type="subtitle" style={styles.subtitle}>
-              Warehouse & delivery
-            </ThemedText>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Phone"
-              placeholderTextColor="#687076"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="number-pad"
-              textContentType="telephoneNumber"
-              autoComplete="tel"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => pinRef.current?.focus()}
-              editable={!loading}
-            />
-            <TextInput
-              ref={pinRef}
-              style={styles.input}
-              placeholder="PIN (6 digits)"
-              placeholderTextColor="#687076"
-              value={pin}
-              onChangeText={setPin}
-              secureTextEntry
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              returnKeyType="go"
-              onSubmitEditing={handleLogin}
-              maxLength={6}
-              editable={!loading}
-            />
-
-            {error ? (
-              <ThemedText style={styles.error} lightColor="#b91c1c" darkColor="#fca5a5">
-                {error}
+            <ThemedView style={styles.heroCard}>
+              <ThemedText type="title" style={styles.title}>
+                Inguumel Drive
               </ThemedText>
-            ) : null}
+              <ThemedText type="subtitle" style={styles.subtitle}>
+                Warehouse, delivery, and COD confirmation in one workspace.
+              </ThemedText>
+              <ThemedText style={styles.helper}>
+                Log in with the staff phone number and 6-digit PIN assigned in local Odoo.
+              </ThemedText>
+            </ThemedView>
 
-            <TouchableOpacity
-              style={[styles.button, isSubmitDisabled && styles.buttonDisabled]}
-              onPress={handleButtonPress}
-              disabled={isSubmitDisabled}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
+            <ThemedView style={styles.formCard}>
+              <ThemedText style={styles.fieldLabel}>Phone number</ThemedText>
+              <TextInput
+                style={styles.input}
+                placeholder="99001122"
+                placeholderTextColor="#687076"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="number-pad"
+                textContentType="telephoneNumber"
+                autoComplete="tel"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => pinRef.current?.focus()}
+                editable={!loading}
+              />
+              <ThemedText style={styles.fieldLabel}>PIN code</ThemedText>
+              <TextInput
+                ref={pinRef}
+                style={styles.input}
+                placeholder="123456"
+                placeholderTextColor="#687076"
+                value={pin}
+                onChangeText={setPin}
+                secureTextEntry
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                returnKeyType="go"
+                onSubmitEditing={handleLogin}
+                maxLength={6}
+                editable={!loading}
+              />
+
+              {error ? (
+                <ThemedText style={styles.error} lightColor="#b91c1c" darkColor="#fca5a5">
+                  {error}
+                </ThemedText>
               ) : (
-                <ThemedText style={styles.buttonText}>Log in</ThemedText>
+                <ThemedText style={styles.inlineHint}>
+                  Driver, warehouse owner, or cashier permissions with warehouses are required.
+                </ThemedText>
               )}
-            </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.button, isSubmitDisabled && styles.buttonDisabled]}
+                onPress={handleButtonPress}
+                disabled={isSubmitDisabled}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <ThemedText style={styles.buttonText}>Open workspace</ThemedText>
+                )}
+              </TouchableOpacity>
+
+              <ThemedView style={styles.legalRow}>
+                <TouchableOpacity
+                  onPress={() => handleOpenLegal(legal.privacyPolicyUrl)}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.legalLink}>Privacy</ThemedText>
+                </TouchableOpacity>
+                <ThemedText style={styles.legalDot}>•</ThemedText>
+                <TouchableOpacity
+                  onPress={() => handleOpenLegal(legal.termsUrl)}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.legalLink}>Terms</ThemedText>
+                </TouchableOpacity>
+              </ThemedView>
+            </ThemedView>
           </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
@@ -212,33 +252,71 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 48,
   },
+  heroCard: {
+    padding: 22,
+    borderRadius: 22,
+    marginBottom: 18,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
   title: {
-    marginBottom: 8,
-    textAlign: 'center',
+    marginBottom: 10,
   },
   subtitle: {
-    marginBottom: 24,
-    textAlign: 'center',
+    marginBottom: 8,
+  },
+  helper: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#334155',
+  },
+  formCard: {
+    padding: 20,
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 3,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#cbd5e1',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     fontSize: 16,
-    marginBottom: 12,
-    minHeight: 48,
+    marginBottom: 16,
+    minHeight: 52,
+    backgroundColor: '#f8fafc',
   },
   error: {
-    marginBottom: 12,
+    marginBottom: 14,
     fontSize: 14,
   },
+  inlineHint: {
+    marginBottom: 14,
+    fontSize: 13,
+    color: '#64748b',
+    lineHeight: 18,
+  },
   button: {
-    backgroundColor: '#0a7ea4',
+    backgroundColor: '#0f766e',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 14,
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 52,
     justifyContent: 'center',
   },
   buttonDisabled: {
@@ -248,5 +326,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  legalRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+  },
+  legalLink: {
+    fontSize: 13,
+    color: '#0f766e',
+    fontWeight: '600',
+  },
+  legalDot: {
+    fontSize: 13,
+    color: '#94a3b8',
   },
 });

@@ -52,16 +52,18 @@ export async function fetchDriveOrders(
     offset,
   };
   if (status) params.status = status;
+
+  if (__DEV__) {
+    const baseUrl = config.apiBaseUrl.replace(/\/$/, '');
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
+    ).toString();
+    const endpointUrl = `${baseUrl}${API_PATHS.DRIVE_ORDERS}${query ? `?${query}` : ''}`;
+    console.log('[fetchDriveOrders] endpoint', endpointUrl);
+    console.log('[fetchDriveOrders] params', JSON.stringify(params));
+  }
+
   try {
-    if (__DEV__) {
-      const baseUrl = config.apiBaseUrl.replace(/\/$/, '');
-      const query = new URLSearchParams(
-        Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
-      ).toString();
-      const endpointUrl = `${baseUrl}${API_PATHS.DRIVE_ORDERS}${query ? `?${query}` : ''}`;
-      console.log('[fetchDriveOrders] endpoint', endpointUrl);
-      console.log('[fetchDriveOrders] params', JSON.stringify(params));
-    }
     const { data } = await client.get<unknown>(API_PATHS.DRIVE_ORDERS, { params });
     const list = extractOrders(data);
     if (__DEV__) {
@@ -79,9 +81,13 @@ export async function fetchDriveOrders(
       console.log('[fetchDriveOrders] first 3 items', JSON.stringify(head, null, 0));
     }
     return list;
-  } catch (e) {
-    if (__DEV__) console.warn('[fetchDriveOrders] fallback to mxm/orders', e);
-    return fetchOrders(limit, offset, warehouseId);
+  } catch (err: unknown) {
+    const statusCode = (err as { response?: { status?: number } })?.response?.status;
+    if (statusCode === 404) {
+      if (__DEV__) console.warn('[fetchDriveOrders] driver list missing, fallback to mxm/orders');
+      return fetchOrders(limit, offset, warehouseId);
+    }
+    throw err;
   }
 }
 
@@ -253,11 +259,7 @@ export async function updateDriveOrderStatus(
   orderId: string,
   code: string
 ): Promise<DeliveryInfo> {
-  const { data } = await client.post<unknown>(
-    API_PATHS.driveOrderStatus(orderId),
-    { code }
-  );
-  return unwrapData<DeliveryInfo>(data);
+  return updateDeliveryStatus(orderId, { status: code });
 }
 
 const BATCH_CONCURRENCY = 6;
@@ -309,10 +311,12 @@ export async function fetchDeliveryBatch(
   concurrency = BATCH_CONCURRENCY
 ): Promise<Record<string, DeliveryInfo>> {
   const result: Record<string, DeliveryInfo> = {};
+  const fetchDelivery =
+    config.appContext === 'driver' ? fetchDriverOrderDelivery : fetchOrderDelivery;
   for (let i = 0; i < orderIds.length; i += concurrency) {
     const chunk = orderIds.slice(i, i + concurrency);
     const settled = await Promise.allSettled(
-      chunk.map((id) => fetchOrderDelivery(String(id)).then((d) => ({ id: String(id), d })))
+      chunk.map((id) => fetchDelivery(String(id)).then((d) => ({ id: String(id), d })))
     );
     for (const s of settled) {
       if (s.status === 'fulfilled') result[s.value.id] = s.value.d;

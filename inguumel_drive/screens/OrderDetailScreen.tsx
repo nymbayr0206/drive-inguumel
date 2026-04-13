@@ -12,7 +12,15 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
-import { fetchOrderDetailForApp, fetchDeliveryForApp, fetchDriverOrderById, fetchDriverOrderDelivery, cashConfirmOrder, confirmDriverCod } from '@/api/orders';
+import {
+  fetchOrderDetailForApp,
+  fetchDeliveryForApp,
+  fetchDriverOrderById,
+  fetchDriverOrderDelivery,
+  refetchOrderAndDelivery,
+  cashConfirmOrder,
+  confirmDriverCod,
+} from '@/api/orders';
 import { config } from '@/config/env';
 import { normalizeError } from '@/api/client';
 import { DeliveryStepper } from '@/components/DeliveryStepper';
@@ -149,6 +157,7 @@ export default function OrderDetailScreen() {
   }, [orderId, setDeliveryFromCache]);
 
   const lines: OrderLine[] = order?.lines ?? order?.order_line ?? [];
+  const orderNumber = String(order?.order_number ?? order?.name ?? orderId);
   const partnerName = order?.partner?.name ?? '—';
   const phone =
     order?.shipping?.phone_primary ??
@@ -171,7 +180,6 @@ export default function OrderDetailScreen() {
   }, [address]);
 
   const paymentMethod = (order?.payment_method ?? order?.payment_method_code ?? delivery?.payment_method ?? '').toLowerCase();
-  const isPaid = order?.is_paid === true || order?.payment_state_code === 'paid';
   const deliveryStatus =
     (delivery ? getCurrentStatusCode(delivery) : null) ??
     (order?.delivery_status ?? order?.delivery_status_code ?? '').toLowerCase();
@@ -226,11 +234,6 @@ export default function OrderDetailScreen() {
     }
   }, [orderId, cashConfirming, showCashConfirm, refetchSourceOfTruth, setDeliveryFromCache, requestListRefresh]);
 
-  const handleCodConfirm = useCallback(async () => {
-    if (config.appContext === 'driver') return handleDriverCodConfirm();
-    return handleCashConfirm();
-  }, [handleDriverCodConfirm, handleCashConfirm]);
-
   const handleDriverCodConfirm = useCallback(async () => {
     if (!orderId || codConfirming || !showDriverCodConfirm) return;
     setCodConfirming(true);
@@ -264,6 +267,11 @@ export default function OrderDetailScreen() {
       setCodConfirming(false);
     }
   }, [orderId, codConfirming, showDriverCodConfirm, setDeliveryFromCache, setOrderPatch, requestListRefresh]);
+
+  const handleCodConfirm = useCallback(async () => {
+    if (config.appContext === 'driver') return handleDriverCodConfirm();
+    return handleCashConfirm();
+  }, [handleDriverCodConfirm, handleCashConfirm]);
 
   if (!orderId) {
     return (
@@ -307,6 +315,20 @@ export default function OrderDetailScreen() {
           <ThemedText type="title" style={styles.heroStatus}>
             {deliveryDisplayLabel || '—'}
           </ThemedText>
+          <View style={styles.heroMetaRow}>
+            <View style={styles.heroMetaCard}>
+              <ThemedText style={styles.heroMetaLabel}>Order</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.heroMetaValue}>
+                {orderNumber}
+              </ThemedText>
+            </View>
+            <View style={styles.heroMetaCard}>
+              <ThemedText style={styles.heroMetaLabel}>Payment</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.heroMetaValue}>
+                {paymentLabel(order, delivery)}
+              </ThemedText>
+            </View>
+          </View>
           <DeliveryStepper currentStatusCode={deliveryCode} variant="default" />
           {lastUpdatedAt ? (
             <ThemedText style={styles.lastUpdated}>
@@ -363,15 +385,20 @@ export default function OrderDetailScreen() {
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Холбоо барих
           </ThemedText>
-          <ThemedText style={styles.customerName}>{partnerName}</ThemedText>
+          <View style={styles.contactCard}>
+            <ThemedText style={styles.contactLabel}>Customer</ThemedText>
+            <ThemedText style={styles.customerName}>{partnerName}</ThemedText>
+          </View>
           {phone ? (
-            <TouchableOpacity onPress={handleCall} activeOpacity={0.7}>
-              <ThemedText style={styles.tappable}>📞 {phone}</ThemedText>
+            <TouchableOpacity onPress={handleCall} activeOpacity={0.8} style={styles.contactCard}>
+              <ThemedText style={styles.contactLabel}>Phone</ThemedText>
+              <ThemedText style={styles.tappable}>{phone}</ThemedText>
             </TouchableOpacity>
           ) : null}
           {address ? (
-            <TouchableOpacity onPress={handleCopyAddress} activeOpacity={0.7}>
-              <ThemedText style={styles.tappable}>📍 {address}</ThemedText>
+            <TouchableOpacity onPress={handleCopyAddress} activeOpacity={0.8} style={styles.contactCard}>
+              <ThemedText style={styles.contactLabel}>Address</ThemedText>
+              <ThemedText style={styles.tappable}>{address}</ThemedText>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -477,13 +504,36 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     padding: 20,
-    alignItems: 'center',
+    backgroundColor: '#f8fbff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#dbeafe',
   },
   heroStatus: {
     marginBottom: 12,
     textAlign: 'center',
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  heroMetaCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  heroMetaLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  heroMetaValue: {
+    fontSize: 15,
   },
   lastUpdated: {
     fontSize: 13,
@@ -504,12 +554,26 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   customerName: {
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  contactCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 10,
+  },
+  contactLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 6,
+    textTransform: 'uppercase',
   },
   tappable: {
     fontSize: 15,
-    marginTop: 4,
-    textDecorationLine: 'underline',
+    color: '#0f172a',
   },
   lineRow: {
     flexDirection: 'row',

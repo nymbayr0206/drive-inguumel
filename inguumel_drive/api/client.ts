@@ -7,6 +7,20 @@ import { API_CODES } from '@/types/api';
 let onUnauthorized: (() => void) | null = null;
 let onWarehouseNotAssigned: (() => void) | null = null;
 
+function devLog(...args: unknown[]) {
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log(...args);
+  }
+}
+
+function devError(...args: unknown[]) {
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.error(...args);
+  }
+}
+
 export function setOnUnauthorized(fn: (() => void) | null) {
   onUnauthorized = fn;
 }
@@ -15,7 +29,6 @@ export function setOnWarehouseNotAssigned(fn: (() => void) | null) {
   onWarehouseNotAssigned = fn;
 }
 
-/** Normalized API error for UI */
 export interface NormalizedError {
   status: number;
   message: string;
@@ -24,8 +37,7 @@ export interface NormalizedError {
 }
 
 function logHttpOut(method: string, url: string) {
-  // eslint-disable-next-line no-console
-  console.log('[HTTP OUT]', JSON.stringify({ method, url }));
+  devLog('[HTTP OUT]', JSON.stringify({ method, url }));
 }
 
 function logHttpIn(
@@ -38,8 +50,7 @@ function logHttpIn(
   const payload: Record<string, string | number> = { status };
   if (code !== undefined) payload.code = code;
   if (requestId !== undefined) payload.request_id = requestId;
-  // eslint-disable-next-line no-console
-  console.log('[HTTP IN]', JSON.stringify({ method, url, ...payload }));
+  devLog('[HTTP IN]', JSON.stringify({ method, url, ...payload }));
 }
 
 const client = axios.create({
@@ -61,11 +72,11 @@ client.interceptors.request.use((req: InternalAxiosRequestConfig) => {
 
 client.interceptors.response.use(
   (res) => {
-    const data = res.data as { success?: boolean; code?: string; message?: string; request_id?: string } | undefined;
+    const data = res.data as
+      | { success?: boolean; code?: string; message?: string; request_id?: string }
+      | undefined;
     const code = data?.code;
-    const requestId =
-      res.headers?.['x-request-id'] ??
-      data?.request_id;
+    const requestId = res.headers?.['x-request-id'] ?? data?.request_id;
     logHttpIn(
       res.config.method?.toUpperCase() ?? 'GET',
       res.config.url ?? '',
@@ -75,7 +86,14 @@ client.interceptors.response.use(
     );
     return res;
   },
-  (err: AxiosError<{ success?: boolean; code?: string; message?: string; request_id?: string }>) => {
+  (
+    err: AxiosError<{
+      success?: boolean;
+      code?: string;
+      message?: string;
+      request_id?: string;
+    }>
+  ) => {
     const status = err.response?.status ?? 0;
     const data = err.response?.data;
     const code = data?.code ?? err.response?.headers?.['x-api-code'];
@@ -92,12 +110,18 @@ client.interceptors.response.use(
     if (status === 401 && onUnauthorized) {
       onUnauthorized();
     }
-    if (status === 403 && code === API_CODES.WAREHOUSE_NOT_ASSIGNED && onWarehouseNotAssigned) {
+    if (
+      status === 403 &&
+      code === API_CODES.WAREHOUSE_NOT_ASSIGNED &&
+      onWarehouseNotAssigned
+    ) {
       onWarehouseNotAssigned();
     }
     if (status >= 500 && !requestId) {
-      // eslint-disable-next-line no-console
-      console.error('[HTTP IN] Server error – full response:', JSON.stringify(err.response?.data ?? err.message));
+      devError(
+        '[HTTP IN] Server error full response:',
+        JSON.stringify(err.response?.data ?? err.message)
+      );
     }
     return Promise.reject(err);
   }
@@ -127,7 +151,7 @@ export function normalizeError(err: unknown): NormalizedError {
         } else if (code === API_CODES.FORBIDDEN) {
           message = 'Not permitted.';
         } else {
-          message = 'You don’t have access to this.';
+          message = "You don't have access to this.";
         }
       } else if (status === 400 && code === API_CODES.VALIDATION_ERROR) {
         message = data?.message ?? 'Invalid request.';

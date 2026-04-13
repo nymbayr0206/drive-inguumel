@@ -108,7 +108,6 @@ export default function OrdersListScreen() {
   const [enriching, setEnriching] = useState(false);
   const [tab, setTab] = useState<typeof TAB_ALL | (typeof DELIVERY_CODES)[number]>(TAB_ALL);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetchAt, setLastFetchAt] = useState<number | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadPage = useCallback(
@@ -135,7 +134,6 @@ export default function OrdersListScreen() {
           setOrders(list);
           setOffset(list.length);
           setHasMore(list.length >= PAGE_SIZE);
-          setLastFetchAt(Date.now());
           clearPatchesForOrderIds(list.map((o) => String(o.order_id ?? o.id)));
         } else {
           setOrders((prev) => [...prev, ...list]);
@@ -300,6 +298,25 @@ export default function OrdersListScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryTopRow}>
+          <View>
+            <ThemedText type="defaultSemiBold" style={styles.summaryTitle}>
+              Идэвхтэй хүргэлтийн самбар
+            </ThemedText>
+            <ThemedText style={styles.summaryMeta}>
+              Агуулах {selectedWarehouseId ?? warehouseIds[0] ?? '—'}
+            </ThemedText>
+          </View>
+          <View style={styles.summaryBadge}>
+            <ThemedText style={styles.summaryBadgeText}>{orders.length}</ThemedText>
+          </View>
+        </View>
+        <ThemedText style={styles.summaryHint}>
+          {enriching ? 'Төлвүүд шинэчлэгдэж байна…' : 'Хүргэлтийн төлөв 30 секунд тутам автоматаар шинэчлэгдэнэ.'}
+        </ThemedText>
+      </View>
+
       {warehouseIds.length > 1 ? (
         <View style={styles.warehouseRow}>
           <ThemedText type="defaultSemiBold" style={styles.label}>
@@ -349,17 +366,6 @@ export default function OrdersListScreen() {
         </ThemedText>
       ) : null}
 
-      {__DEV__ ? (
-        <View style={styles.debugBanner}>
-          <ThemedText style={styles.debugBannerText}>
-            DEBUG: UI PATCH ACTIVE · count={orders.length} · lastFetchAt={lastFetchAt != null ? new Date(lastFetchAt).toISOString().slice(11, 19) : '—'}
-          </ThemedText>
-          <TouchableOpacity style={styles.debugRefreshBtn} onPress={onRefresh}>
-            <ThemedText style={styles.debugRefreshBtnText}>Refresh</ThemedText>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
       <FlatList
         data={filteredOrders}
         keyExtractor={(item) => String(item.order_id ?? item.id)}
@@ -394,6 +400,49 @@ export default function OrdersListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  summaryCard: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 10,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: '#ecfeff',
+    borderWidth: 1,
+    borderColor: '#a5f3fc',
+  },
+  summaryTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryTitle: {
+    fontSize: 16,
+  },
+  summaryMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    color: '#155e75',
+  },
+  summaryHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#164e63',
+  },
+  summaryBadge: {
+    minWidth: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#0f766e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  summaryBadgeText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -435,24 +484,6 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14 },
   tabTextActive: { color: '#fff', fontWeight: '600' },
   error: { padding: 12, fontSize: 14 },
-  debugBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#fef3c7',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f59e0b',
-  },
-  debugBannerText: { fontSize: 11, color: '#92400e' },
-  debugRefreshBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#f59e0b',
-    borderRadius: 6,
-  },
-  debugRefreshBtnText: { fontSize: 12, color: '#fff', fontWeight: '600' },
   listContent: { paddingTop: 12, paddingBottom: 24 },
   empty: { padding: 32, alignItems: 'center' },
   emptyText: { fontSize: 16, opacity: 0.9 },

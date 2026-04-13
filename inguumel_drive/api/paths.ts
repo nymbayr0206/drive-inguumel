@@ -1,6 +1,6 @@
 /**
- * Centralized API paths. Drive app uses /api/v1/driver/* for delivery GET/POST.
- * Odoo 19 custom API contract.
+ * Centralized API paths for the drive app.
+ * Prefer canonical /api/v1/driver/* routes exposed by the local Odoo backend.
  */
 export const API_PATHS = {
   /** Auth: POST body { phone, pin } */
@@ -24,7 +24,7 @@ export const API_PATHS = {
   /** Cash confirm: POST for COD orders after delivered. */
   orderCashConfirm: (orderId: string) => `/api/v1/orders/${orderId}/cash-confirm`,
 
-  /** Drive app: list orders for drivers (warehouse_id, status, limit, offset); newest first */
-  DRIVE_ORDERS: '/api/v1/drive/orders',
-  driveOrderStatus: (orderId: string) => `/api/v1/drive/orders/${orderId}/status`,
+  /** Driver list/status update routes. */
+  DRIVE_ORDERS: '/api/v1/driver/orders',
+  driveOrderStatus: (orderId: string) => `/api/v1/driver/orders/${orderId}/delivery/status`,
 } as const;

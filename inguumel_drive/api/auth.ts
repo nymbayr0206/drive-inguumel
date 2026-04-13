@@ -9,6 +9,7 @@ import client from './client';
 import { API_PATHS } from './paths';
 
 function safeLog(label: string, body: unknown, requestId?: string) {
+  if (!__DEV__) return;
   const payload: Record<string, unknown> = { loginResponse: body };
   if (requestId) payload.request_id = requestId;
   // eslint-disable-next-line no-console
